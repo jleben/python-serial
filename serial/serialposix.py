@@ -443,14 +443,30 @@ class PosixSerial(SerialBase):
         if not self._isOpen: raise portNotOpenError
         read = bytearray()
         while len(read) < size:
-            ready,_,_ = select.select([self.fd],[],[], self._timeout)
+            try:
+                ready,_,_ = select.select([self.fd],[],[], self._timeout)
+            except OSError as e:
+                if e.errno == errno.EINTR:
+                    continue
+                else:
+                    raise
+
             # If select was used with a timeout, and the timeout occurs, it
             # returns with empty lists -> thus abort read operation.
             # For timeout == 0 (non-blocking operation) also abort when there
             # is nothing to read.
             if not ready:
                 break   # timeout
-            buf = os.read(self.fd, size-len(read))
+
+            try:
+                buf = os.read(self.fd, size-len(read))
+            except OSError as e:
+                if (e.errno == errno.EINTR or
+                    e.errno == errno.EAGAIN):
+                    continue
+                else:
+                    raise
+
             # read should always return some data as select reported it was
             # ready to read when we get to this point.
             if not buf:
