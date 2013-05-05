@@ -300,9 +300,9 @@ class PosixSerial(SerialBase):
             raise SerialException("Can only operate on a valid file descriptor")
         custom_baud = None
 
-        vmin = vtime = 0                # timeout is done via select
+        vmin = 1
+        vtime = 0                # timeout is done via select
         if self._interCharTimeout is not None:
-            vmin = 1
             vtime = int(self._interCharTimeout * 10)
         try:
             orig_attr = termios.tcgetattr(self.fd)
